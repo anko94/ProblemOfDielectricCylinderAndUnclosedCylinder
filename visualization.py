@@ -10,11 +10,10 @@ class Visualization:
         self.axes.add_patch(mpatches.Circle(source.point, 0.1, color=(0, 0, 0)))
         self.axes.add_patch(mpatches.Arc(arc.center, arc.radius*2, arc.radius*2, arc.rotateAngle, -arc.angle, arc.angle))
 
-        d = dielectricRectangle.getListOfVertices()
-        self.axes.add_patch(mpatches.Circle(d[0], 0.1, color=(0, 0, 0)))
-        self.axes.add_patch(mpatches.Circle(d[1], 0.1, color=(0, 0, 0)))
-        self.axes.add_patch(mpatches.Circle(d[2], 0.1, color=(0, 0, 0)))
-        self.axes.add_patch(mpatches.Circle(d[3], 0.1, color=(0, 0, 0)))
+        c = arc.breakUpArcByNPoints(10)
+        print(len(c))
+        for i in range(len(c)):
+            self.axes.add_patch(mpatches.Circle(c[i], 0.03, color=(0, 0, 0)))
 
         plt.show()
 
