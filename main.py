@@ -11,5 +11,9 @@ if __name__ == "__main__":
     source = Source([2, 2])
     #center, radius, angle, rotateAngle
     arc = Arc([-2, -2], 1, 30, -90)
-    visualization = Visualization()
+    # task draw period, arc draw period, rectangle's points draw period, dielectric draw period
+    visualization = Visualization(1, 1, 0.2, 0.1)
     visualization.drawTask(dielectricRectangle, source, arc)
+    visualization.fillArc(arc, 10)
+    visualization.fillDielectricRectangle(dielectricRectangle, 10, 10)
+    visualization.blockPlot()
