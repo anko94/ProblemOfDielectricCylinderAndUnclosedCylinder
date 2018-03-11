@@ -24,7 +24,7 @@ class Arc:
         result = []
         exitFlag = 0
         angle = self.angle
-        dl = 2 * math.pi * self.radius/n * angle * 2/360
+        dl = 2 * math.pi * self.radius/(n-1) * angle * 2/360
         while exitFlag != 1:
             d = self.getTwoVertices(angle)
             if math.sqrt((d[0][0] - d[1][0])**2 + (d[0][1] - d[1][1])**2) < self.accuracy:
@@ -36,6 +36,19 @@ class Arc:
             if angle < 0:
                 exitFlag = 1
         return result
+
+    #rewrite this method for another case of arc
+    def putVerticesInCorrectOrder(self, array):
+        resultArray = []
+        i = 1
+        while i<len(array):
+            resultArray.append(array[i])
+            i+=2
+        i = len(array)-2 if len(array)%2==0 else len(array) - 1
+        while i>=0:
+            resultArray.append(array[i])
+            i-=2
+        return resultArray
 
     def __init__(self, center, radius, angle, rotateAngle):
         self.center = center
