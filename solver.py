@@ -31,16 +31,16 @@ class Solver:
             A0Elem = []
             if i<nDielectric:
                 vertices = dielectricRectangles[i].getListOfVertices()
-                M = [vertices[1][0]-math.sqrt(vertices[1][0]-vertices[2][0])/2,
-                     vertices[1][1]-math.sqrt(vertices[1][1]-vertices[2][1])/2]
+                M = [vertices[1][0]-math.fabs(vertices[1][0]-vertices[2][0])/2,
+                     vertices[1][1]-math.fabs(vertices[1][1]-vertices[2][1])/2]
             else:
                 M=[arcPoints[i-nDielectric][0], arcPoints[i-nDielectric][1]]
             for j in range(nDielectric+nArc):
                 I = 1 if i==j and j<nDielectric and i<nDielectric else 0
                 if j<nDielectric:
                     vertices = dielectricRectangles[j].getListOfVertices()
-                    P = [vertices[1][0]-math.sqrt(vertices[1][0]-vertices[2][0])/2,
-                         vertices[1][1]-math.sqrt(vertices[1][1]-vertices[2][1])/2]
+                    P = [vertices[1][0]-math.fabs(vertices[1][0]-vertices[2][0])/2,
+                         vertices[1][1]-math.fabs(vertices[1][1]-vertices[2][1])/2]
                 else:
                     P = [arcPoints[j-nDielectric][0], arcPoints[j-nDielectric][1]]
                 A0Elem.append(complex(c1*ds*(self.G(k1, M, P)-1/(c1*ds)*I) + c2*dl*self.G(k0, M, P)))

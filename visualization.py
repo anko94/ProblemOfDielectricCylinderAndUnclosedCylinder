@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import math
 
 
 class Visualization:
@@ -18,6 +19,9 @@ class Visualization:
             plt.draw()
             plt.pause(self.rectanglePeriod)
             self.axes.add_patch(mpatches.Circle(vertices[3], 0.03, color=(0, 0, 0)))
+            plt.draw()
+            self.axes.add_patch(mpatches.Circle([vertices[1][0]-math.fabs(vertices[1][0]-vertices[2][0])/2,
+                     vertices[1][1]-math.fabs(vertices[1][1]-vertices[2][1])/2], 0.03, color=(0, 0, 0)))
             plt.draw()
             plt.pause(self.dielectricPeriod)
 
