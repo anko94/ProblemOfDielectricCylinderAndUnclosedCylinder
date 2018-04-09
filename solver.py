@@ -36,9 +36,9 @@ class Solver:
             for j in range(nDielectric+nArc):
                 i1 = 1 if i==j and j<nDielectric and i<nDielectric else 0
                 if j<nDielectric:
-                    A0Elem.append(complex(self.c1*ds*(self.G(self.k0, M[i], M[j])-1/(self.c1*ds)*i1)))
+                    A0Elem.append(complex(self.c1*ds*(self.G(self.k1, M[i], M[j])-1/(self.c1*ds)*i1)))
                 else:
-                    A0Elem.append(complex(self.c2*dl*self.G(self.k1, M[i], M[j])))
+                    A0Elem.append(complex(self.c2*dl*self.G(self.k0, M[i], M[j])))
             A.append(A0Elem)
         result = np.linalg.solve(np.array(A), np.array(B))
         U = result[:nDielectric]

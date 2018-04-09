@@ -15,7 +15,7 @@ def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectri
     # point
     source = Source(sourcePoint)
     # center, radius, angle, rotateAngle
-    arc = Arc(arcCenter, arcRadius, arcAngle*180/math.pi, -90)
+    arc = Arc(arcCenter, arcRadius, arcAngle, -90)
     # task draw period, arc draw period, rectangle's points draw period, dielectric draw period
     visualization = Visualization(0.1, 0.1, 0.1, 0.1)
     visualization.drawTask(dielectricRectangle, source, arc)
@@ -25,6 +25,7 @@ def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectri
 
 
 def plotFieldStrengthByAngle(arcAngle, PHI1, PHI2, PHI3):
+    arcAngle = arcAngle *math.pi/180
     ax = plt.subplot(111)
     alpha1 = np.linspace(-arcAngle, arcAngle, len(PHI1))
     alpha2 = np.linspace(-arcAngle, arcAngle, len(PHI2))
@@ -54,34 +55,35 @@ def norm(list, v):
 
 if __name__ == "__main__":
     arcCenter = [1, -1]
-    arcAngle = 60 * math.pi/180          #angle in radians
+    arcAngle = 60          #angle in degrees
     arcRadius = 1
     dielectricLowerLeftPoint = [0.5, -0.5]
     dielectricWidth = 0.4
     dielectricHeight = 1
     sourcePoint = [1, 1]
 
-    nArcPoints = 10
-    nDielectricWidthPoints = 7
-    nDielectricHeightPoints = 7
+    nArcPoints = 9
+    nDielectricWidthPoints = 9
+    nDielectricHeightPoints = 9
 
-    solver = Solver(2*math.pi,                     #k0  - волновое число вне диэлектрика
+    solver = Solver(2*math.pi*1,                     #k0  - волновое число вне диэлектрика
                     2*math.pi*1.000001,                     #k1  - волновое число внутри диэлектрика
                     1,                     #I   - амплитуда силы тока
                     8.854188*10**(-12),    #e0  - диэлектрическая проницаемость
                     4*math.pi*10**(-7))    #nu0 - магнитная проницаемость
 
-    dielectricRectangle = DielectricRectangle([0, 0], 1, 2, -90)
-    arc = Arc([1, -1], 1, 30, -90)
-    source = Source([1, 1])
+    dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
+    arc = Arc(arcCenter, arcRadius, arcAngle, -90)
+    source = Source(sourcePoint)
+
     result = solver.solve(nDielectricWidthPoints*nDielectricHeightPoints, nArcPoints,
                           dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints, nDielectricHeightPoints),
                           arc.putVerticesInCorrectOrder(arc.breakUpArcByNPoints(nArcPoints)), source)
     PHI1 = result[1]
 
-    nArcPoints = 20
-    nDielectricWidthPoints = 7
-    nDielectricHeightPoints = 7
+    nArcPoints = 18
+    nDielectricWidthPoints = 18
+    nDielectricHeightPoints = 18
 
     result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints, nArcPoints,
                           dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints,
@@ -89,9 +91,9 @@ if __name__ == "__main__":
                           arc.putVerticesInCorrectOrder(arc.breakUpArcByNPoints(nArcPoints)), source)
     PHI2 = result[1]
 
-    nArcPoints = 40
-    nDielectricWidthPoints = 7
-    nDielectricHeightPoints = 7
+    nArcPoints = 36
+    nDielectricWidthPoints = 36
+    nDielectricHeightPoints = 36
 
     result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints, nArcPoints,
                           dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints,
