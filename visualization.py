@@ -26,7 +26,7 @@ class Visualization:
             plt.pause(self.dielectricPeriod)
 
     def fillArc(self, arc, n):
-        c = arc.putVerticesInCorrectOrder(arc.breakUpArcByNPoints(n))
+        c = arc.breakUpArcByNPoints(n)
         for i in range(len(c)):
             self.axes.add_patch(mpatches.Circle(c[i], 0.03, color=(0, 0, 0)))
             plt.draw()

@@ -21,6 +21,7 @@ class Arc:
                  y1 + side1 * math.sin(cRadians - rotateAngleRadians)]]
 
     def breakUpArcByNPoints(self, n):
+        n+=1
         result = []
         exitFlag = 0
         angle = self.angle
@@ -35,7 +36,11 @@ class Arc:
             angle = angle - dl/(2*math.pi*self.radius) * 360
             if angle < 0:
                 exitFlag = 1
-        return result
+        result = self.putVerticesInCorrectOrder(result)
+        result1 = []
+        for i in range(1, len(result)):
+            result1.append([(result[i-1][0]+result[i][0])/2, (result[i-1][1]+result[i][1])/2])
+        return result1
 
     #rewrite this method for another case of arc
     def putVerticesInCorrectOrder(self, array):
