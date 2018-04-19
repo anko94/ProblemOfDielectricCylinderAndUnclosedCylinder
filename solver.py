@@ -16,50 +16,63 @@ class Solver:
 
     def solve(self, nDielectric, nArc, dielectricRectangles, arcPoints, source):
         vertices = dielectricRectangles[0].getListOfVertices()
-        ds = math.sqrt((vertices[0][0] - vertices[1][0])**2 + (vertices[0][1] - vertices[1][1])**2) * \
+        self.ds = math.sqrt((vertices[0][0] - vertices[1][0])**2 + (vertices[0][1] - vertices[1][1])**2) * \
              math.sqrt((vertices[1][0] - vertices[3][0])**2 + (vertices[1][1] - vertices[3][1])**2)
-        dl = math.sqrt((arcPoints[0][0]-arcPoints[1][0])**2 + (arcPoints[0][1]-arcPoints[1][1])**2)
+        self.dl = math.sqrt((arcPoints[0][0]-arcPoints[1][0])**2 + (arcPoints[0][1]-arcPoints[1][1])**2)
         B = []
-        M = []
+        self.P = []
         for i in range(nDielectric):
             vertices = dielectricRectangles[i].getListOfVertices()
-            M.append([vertices[1][0] - math.fabs(vertices[1][0] - vertices[2][0]) / 2,
+            self.P.append([vertices[1][0] - math.fabs(vertices[1][0] - vertices[2][0]) / 2,
                  vertices[1][1] - math.fabs(vertices[1][1] - vertices[2][1]) / 2])
-            B.append(-complex(self.getInitialFieldStrength(self.k0, M[i], source.point)))
+            B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i], source.point)))
         for i in range(nArc):
-            M.append([arcPoints[i][0], arcPoints[i][1]])
-            B.append(-complex(self.getInitialFieldStrength(self.k0, M[i], source.point)))
+            self.P.append([arcPoints[i][0], arcPoints[i][1]])
+            B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i], source.point)))
         A = [[complex(0.0)] * (nDielectric+nArc) for i in range(nDielectric+nArc)]
         n = nDielectric+nArc
         for i in range(n):
             for j in range(n):
                 i1 = 1 if i==j and j<nDielectric and i<nDielectric else 0
                 if j<nDielectric:
-                    A[i][j] = 1/self.norm*complex(self.c1*ds*(self.G(self.k1, M[i], M[j])-1/(self.c1*ds*self.norm)*i1))
+                    A[i][j] = complex(self.c1*self.ds*(self.G(self.k0, self.P[i], self.P[j])-1/(self.c1*self.ds)*i1))
                 else:
-                    A[i][j] = 1/self.norm*complex(self.c2*dl*self.G(self.k0, M[i], M[j]))
+                    A[i][j] = complex(self.c2*self.dl*self.G(self.k0, self.P[i], self.P[j]))
         result = np.linalg.solve(np.array(A), np.array(B))
         U = result[:nDielectric]
         PHI = result[nDielectric:]
         return [U, PHI]
 
-    def getFieldZInPointM(self, UPHI, M, source, P, ds, dl, nDielectric):
+    def getFieldEInPointM(self, UPHI, M, source, nDielectric):
         U = UPHI[0]
         PHI = UPHI[1]
-        U2 = complex(self.norm * self.getInitialFieldStrength(self.k0, M, source.point))
+        Ez = complex(self.getInitialFieldStrength(self.k0, M, source.point))
+        Hx = complex(1/math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
+                     (M[1] - source.point[1]) * (-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
+        Hy = complex(1/math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
+                     (M[0] - source.point[0]) * (-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
         for i in range(len(U)):
-            U2 += complex(self.c1*U2[i]*self.G(self.k1, M, P[i])*ds)
+            Ez += complex(self.c1*U[i]*self.G(self.k0, M, self.P[i])*self.ds)
+            Hx += complex(self.c1*U[i]*self.ds*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
+                          (M[1] - self.P[i][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+            Hy += complex(self.c1*U[i]*self.ds*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
+                          (M[0] - self.P[i][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
         for i in range(len(PHI)):
-            U2 += complex(self.c2*PHI[i]*self.G(self.k0, M, P[i+nDielectric])*dl)
-        return U2
+            Ez += complex(self.c2*PHI[i]*self.G(self.k0, M, self.P[i+nDielectric])*self.dl)
+            Hx += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
+                          (M[1] - self.P[i][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+            Hy += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
+                          (M[0] - self.P[i][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+        Hx *= - complex(0, 1)
+        Hy *= complex(0, 1)
+        return [Ez, Hx, Hy]
 
-    def __init__(self, k0, k1, I, e0, nu0):
+    def __init__(self, k0, k1):
         self.k0 = k0
         self.k1 = k1
         self.c1 = (self.k1**2-self.k0**2)/(2*math.pi)
         self.c2 = 1 / (2 * math.pi)
         self.accuracy = 0.000001
-        self.I = I
-        self.e0 = e0
-        self.nu0 = nu0
-        self.norm = -self.k0*self.I*math.sqrt(self.nu0)/(4*math.sqrt(self.e0))
+        self.ds = 0
+        self.dl = 0
+        self.P = []

@@ -25,11 +25,10 @@ def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectri
     visualization.blockPlot()
 
 
-def plotCurrentByAngle(arcAngle, PHI1, PHI2, PHI3, PHI4, PHI5, PHI6, PHI7):
+def plotCurrentByAngle(arcAngle, PHIlist):
     arcAngle = arcAngle *math.pi/180
     ax = plt.subplot(111)
     ax.set_color_cycle(['orange', 'brown', 'yellow', 'blue', 'green', 'black', 'red'])
-    PHIlist = [PHI1, PHI2, PHI3, PHI4, PHI5, PHI6, PHI7]
     for PHI in PHIlist:
         alpha = np.linspace(-arcAngle, arcAngle, len(PHI))
         plt.plot(alpha, PHI, label="n=%d" % (len(PHI),))
@@ -41,13 +40,30 @@ def plotCurrentByAngle(arcAngle, PHI1, PHI2, PHI3, PHI4, PHI5, PHI6, PHI7):
     plt.show()
 
 
-def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU1, maxU2, maxU3, maxU4, maxU5, maxU6, maxU7, maxV):
+def plotCurrentByAngle2(arcAngle, PHIlist, dws):
+    arcAngle = arcAngle *math.pi/180
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['orange', 'brown', 'yellow', 'blue', 'green', 'black', 'red','purple'])
+    for i in range(len(PHIlist)):
+        alpha = np.linspace(-arcAngle, arcAngle, len(PHIlist[i]))
+        plt.plot(alpha, PHIlist[i], label="n=%.0e" % (dws[i],))
+    plt.xlabel('угол экрана')
+    plt.ylabel('плотность тока')
+    leg = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", ncol=3, mode="expand", shadow=True, fancybox=True, borderaxespad=0.)
+    leg.get_frame().set_alpha(0.5)
+
+    plt.show()
+
+
+def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU):
     ax = plt.subplot(111)
     print(nArcPointsList)
-    print([math.fabs(maxU1-maxU7)/maxV, math.fabs(maxU2-maxU7)/maxV, math.fabs(maxU3-maxU7)/maxV,
-                              math.fabs(maxU4-maxU7)/maxV, math.fabs(maxU5-maxU7)/maxV, math.fabs(maxU6-maxU7)/maxV])
-    plt.plot(nArcPointsList, [math.fabs(maxU1-maxU7)/maxV, math.fabs(maxU2-maxU7)/maxV, math.fabs(maxU3-maxU7)/maxV,
-                              math.fabs(maxU4-maxU7)/maxV, math.fabs(maxU5-maxU7)/maxV, math.fabs(maxU6-maxU7)/maxV])
+    maxV = max(maxU)
+    maxU1 = []
+    for i in range(len(maxU)-1):
+        maxU1.append(math.fabs(maxU[i]-maxU[len(maxU)-1])/maxV)
+    print(maxU1)
+    plt.plot(nArcPointsList, maxU1)
     plt.xlabel('число точек')
     plt.ylabel('погрешность')
     plt.show()
@@ -79,14 +95,11 @@ def taskConvergence():
 
     nArcPoints = 10
     nDielectricWidthPoints = 10
-    nDielectricHeightPoints = 10
+    nDielectricHeightPoints = 4
     nArcPointsList.append(nArcPoints + nDielectricWidthPoints * nDielectricHeightPoints)
 
     solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
-                    2 * math.pi * 1.4,  # k1  - волновое число внутри диэлектрика
-                    1,  # I   - амплитуда силы тока
-                    8.854188 * 10 ** (-12),  # e0  - диэлектрическая проницаемость
-                    4 * math.pi * 10 ** (-7))  # nu0 - магнитная проницаемость
+                    2 * math.pi * 1.4)  # k1  - волновое число внутри диэлектрика
 
     dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
     arc = Arc(arcCenter, arcRadius, arcAngle, -90)
@@ -187,41 +200,91 @@ def taskConvergence():
 
     maxV = max([max(absPHI1), max(absPHI2), max(absPHI3), max(absPHI4), max(absPHI5), max(absPHI6), max(absPHI7)])
 
-    plotCurrentByAngle(arcAngle, norm(absPHI1, maxV), norm(absPHI2, maxV), norm(absPHI3, maxV),
+    plotCurrentByAngle(arcAngle, [norm(absPHI1, maxV), norm(absPHI2, maxV), norm(absPHI3, maxV),
                              norm(absPHI4, maxV), norm(absPHI5, maxV),
-                             norm(absPHI6, maxV), norm(absPHI7, maxV))
+                             norm(absPHI6, maxV), norm(absPHI7, maxV)])
 
-    maxV = max([max(absU1), max(absU2), max(absU3), max(absU4), max(absU5), max(absU6), max(absU7)])
-    plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, max(absU1), max(absU2), max(absU3), max(absU4), max(absU5), max(absU6), max(absU7), maxV)
+    plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, [max(absU1), max(absU2), max(absU3), max(absU4), max(absU5), max(absU6), max(absU7)])
+
+
+def test2():
+    arcCenter = [1, -1]
+    arcAngle = 30  # angle in degrees
+    arcRadius = 1
+    dielectricLowerLeftPoint = [0.5, -0.5]
+    dielectricWidth = 1
+    dielectricHeight = 1
+    sourcePoint = [1, 1]
+
+    nArcPoints = 160
+    nDielectricWidthPoints = 160
+    nDielectricHeightPoints = 4
+
+    solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
+                    2 * math.pi * 1.4)  # k1  - волновое число внутри диэлектрика
+
+    arc = Arc(arcCenter, arcRadius, arcAngle, -90)
+    source = Source(sourcePoint)
+
+    d = 1 / 10
+    k = 1
+    resultPHI = []
+    resultU = []
+    dws = []
+
+    while k != 8:
+        dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
+        result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints, nArcPoints,
+                              dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints,
+                                                                             nDielectricHeightPoints),
+                              arc.breakUpArcByNPoints(nArcPoints), source)
+        absPHI = listAbs(result[1])
+        absU = listAbs(result[0])
+        resultPHI.append(absPHI)
+        resultU.append(absU)
+        dws.append(dielectricWidth)
+        dielectricWidth *= d
+        k += 1
+    maxAbsPHI = []
+    maxAbsU = []
+    for i in range(len(resultPHI)):
+        maxAbsPHI.append(max(resultPHI[i]))
+        maxAbsU.append(max(resultU[i]))
+    maxV = max(maxAbsPHI)
+    maxV1 = max(maxAbsU)
+    for i in range(len(resultPHI)):
+        resultPHI[i] = norm(resultPHI[i], maxV)
+        if i != len(resultPHI) - 1:
+            maxAbsU[i] = math.fabs(maxAbsU[i] - maxAbsU[len(resultPHI) - 1]) / maxV1
+    plotCurrentByAngle2(arcAngle, resultPHI, dws)
+    print(maxAbsU)
 
 
 if __name__ == "__main__":
     # arcCenter = [1, -1]
-    # arcAngle = 60          #angle in degrees
+    # arcAngle = 30          #angle in degrees
     # arcRadius = 1
     # dielectricLowerLeftPoint = [0.5, -0.5]
-    # dielectricWidth = 0.1
+    # dielectricWidth = 1
     # dielectricHeight = 1
     # sourcePoint = [1, 1]
-    #
-    # nArcPoints = 10
-    # nDielectricWidthPoints = 10
-    # nDielectricHeightPoints = 1
+    # #
+    # nArcPoints = 160
+    # nDielectricWidthPoints = 160
+    # nDielectricHeightPoints = 4
     #
     # solver = Solver(2*math.pi,                     #k0  - волновое число вне диэлектрика
-    #                 2*math.pi*1.000001,                     #k1  - волновое число внутри диэлектрика
-    #                 1,                     #I   - амплитуда силы тока
-    #                 8.854188*10**(-12),    #e0  - диэлектрическая проницаемость
-    #                 4*math.pi*10**(-7))    #nu0 - магнитная проницаемость
+    #                 2*math.pi*1.4)                     #k1  - волновое число внутри диэлектрика
     #
-    # dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
     # arc = Arc(arcCenter, arcRadius, arcAngle, -90)
     # source = Source(sourcePoint)
-    #
+    # dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
     # result = solver.solve(nDielectricWidthPoints*nDielectricHeightPoints, nArcPoints,
     #                       dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints, nDielectricHeightPoints),
     #                       arc.breakUpArcByNPoints(nArcPoints), source)
-    # PHI1 = result[1]
+    #
+    test2()
+    # print(solver.getFieldEInPointM(result, [-3, 3], source, nDielectricHeightPoints*nDielectricWidthPoints))
     # drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
     #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints)
-    taskConvergence()
+    # taskConvergence()
