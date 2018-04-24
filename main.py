@@ -1,3 +1,4 @@
+from data.line import Line
 from data.arc import Arc
 from data.dielectricRectangle import DielectricRectangle
 from data.source import Source
@@ -9,19 +10,24 @@ import numpy as np
 
 
 def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
-             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints):
+             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, n):
+    two = 0 if len(dielectricLowerLeftPoint)==1 else 1
     # all angles in degrees
-    # lower left point, width, height, rotateAngle
-    dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
     # point
     source = Source(sourcePoint)
     # center, radius, angle, rotateAngle
     arc = Arc(arcCenter, arcRadius, arcAngle, -90)
+    line = Line(eLineX, eLineY)
     # task draw period, arc draw period, rectangle's points draw period, dielectric draw period
     visualization = Visualization(0.1, 0.1, 0.1, 0.1)
-    visualization.drawTask(dielectricRectangle, source, arc)
+    # lower left point, width, height, rotateAngle
+    dielectricRectangle = [DielectricRectangle(dielectricLowerLeftPoint[0], dielectricWidth, dielectricHeight, -90)]
+    if two == 1:
+        dielectricRectangle.append(DielectricRectangle(dielectricLowerLeftPoint[1], dielectricWidth, dielectricHeight, -90))
+    visualization.drawTask(dielectricRectangle, source, arc, line)
     # visualization.fillArc(arc, nArcPoints)
     # visualization.fillDielectricRectangle(dielectricRectangle, nDielectricWidthPoints, nDielectricHeightPoints)
+    # visualization.fillLine(line, n)
     visualization.blockPlot()
 
 
@@ -46,7 +52,7 @@ def plotCurrentByAngle2(arcAngle, PHIlist, dws):
     ax.set_color_cycle(['orange', 'brown', 'yellow', 'blue', 'green', 'black', 'red','purple'])
     for i in range(len(PHIlist)):
         alpha = np.linspace(-arcAngle, arcAngle, len(PHIlist[i]))
-        plt.plot(alpha, PHIlist[i], label="n=%.0e" % (dws[i],))
+        plt.plot(alpha, PHIlist[i], label="d=%.0e" % (dws[i],))
     plt.xlabel('угол экрана')
     plt.ylabel('плотность тока')
     leg = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", ncol=3, mode="expand", shadow=True, fancybox=True, borderaxespad=0.)
@@ -66,6 +72,20 @@ def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU):
     plt.plot(nArcPointsList, maxU1)
     plt.xlabel('число точек')
     plt.ylabel('погрешность')
+    plt.show()
+
+
+def plotField(fieldE, fieldHx, fieldHy, d):
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['green', 'black', 'red'])
+    plt.plot(d, fieldE, label="Ez")
+    plt.plot(d, fieldHx, label="Hx")
+    plt.plot(d, fieldHy, label="Hy")
+    plt.xlabel('a/k')
+    plt.ylabel('P')
+    leg = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", ncol=3, mode="expand", shadow=True,
+                     fancybox=True, borderaxespad=0.)
+    leg.get_frame().set_alpha(0.5)
     plt.show()
 
 
@@ -260,31 +280,91 @@ def test2():
     print(maxAbsU)
 
 
+def computeFieldInLine():
+    arcCenter = [1, -1]
+    arcAngle = 30  # angle in degrees
+    arcRadius = 1
+    dielectricLowerLeftPoint1 = [0.35, -1.654]
+    dielectricLowerLeftPoint2 = [1.35, -1.654]
+    dielectricWidth = 0.2
+    dielectricHeight = 0.3
+    sourcePoint = [1, 1]
+
+    eLineX = [0.3, 1.7]
+    nx = 160
+    eLineY = [-1.86, -1.86]
+    line = Line(eLineX, eLineY)
+    l = line.breakUpByNPoints(nx)
+    x = l[0]
+    y = l[1]
+
+    nArcPoints = 10
+    nDielectricWidthPoints = 10
+    nDielectricHeightPoints = 4
+
+    solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
+                    2 * math.pi * 1.000001)  # k1  - волновое число внутри диэлектрика
+
+    arc = Arc(arcCenter, arcRadius, arcAngle, -90)
+    source = Source(sourcePoint)
+    dielectricRectangle1 = DielectricRectangle(dielectricLowerLeftPoint1, dielectricWidth, dielectricHeight, -90)
+    dielectricRectangle2 = DielectricRectangle(dielectricLowerLeftPoint2, dielectricWidth, dielectricHeight, -90)
+    drawTask(arcCenter, arcAngle, arcRadius, [dielectricLowerLeftPoint1, dielectricLowerLeftPoint2], dielectricWidth, dielectricHeight, sourcePoint,
+             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, nx)
+    fieldE = []
+    fieldHx = []
+    fieldHy = []
+    for i in range(nx):
+        result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints*2, nArcPoints,
+                              dielectricRectangle1.breakUpRectangleByNMPoints(nDielectricWidthPoints,
+                                                                             nDielectricHeightPoints) + dielectricRectangle2.breakUpRectangleByNMPoints(nDielectricWidthPoints,
+                                                                             nDielectricHeightPoints),
+                              arc.breakUpArcByNPoints(nArcPoints), source)
+        r = solver.getFieldEInPointM(result, [x[i], y], source, nDielectricWidthPoints * nDielectricHeightPoints*2)
+        fieldE.append(r[0])
+        fieldHx.append(r[1])
+        fieldHy.append(r[2])
+
+    fieldEAbs = listAbs(fieldE)
+    fieldHxAbs = listAbs(fieldHx)
+    fieldHyAbs = listAbs(fieldHy)
+
+    maxE = max(fieldEAbs)
+    maxHx = max(fieldHxAbs)
+    maxHy = max(fieldHyAbs)
+
+    plotField(norm(fieldEAbs, maxE), norm(fieldHxAbs, maxHx), norm(fieldHyAbs, maxHy), x)
+
+
 if __name__ == "__main__":
     # arcCenter = [1, -1]
-    # arcAngle = 30          #angle in degrees
+    # arcAngle = 30  # angle in degrees
     # arcRadius = 1
     # dielectricLowerLeftPoint = [0.5, -0.5]
-    # dielectricWidth = 1
+    # dielectricWidth = 0.3
     # dielectricHeight = 1
     # sourcePoint = [1, 1]
-    # #
-    # nArcPoints = 160
-    # nDielectricWidthPoints = 160
+    #
+    # eLineX = [0, 2]
+    # nx = 40
+    # eLineY = [-0.3, -0.3]
+    # line = Line(eLineX, eLineY)
+    # l = line.breakUpByNPoints(nx)
+    # x = l[0]
+    # y = l[1]
+    #
+    # nArcPoints = 20
+    # nDielectricWidthPoints = 20
     # nDielectricHeightPoints = 4
     #
-    # solver = Solver(2*math.pi,                     #k0  - волновое число вне диэлектрика
-    #                 2*math.pi*1.4)                     #k1  - волновое число внутри диэлектрика
+    # solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
+    #                 2 * math.pi * 1.000001)  # k1  - волновое число внутри диэлектрика
     #
     # arc = Arc(arcCenter, arcRadius, arcAngle, -90)
     # source = Source(sourcePoint)
     # dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
-    # result = solver.solve(nDielectricWidthPoints*nDielectricHeightPoints, nArcPoints,
-    #                       dielectricRectangle.breakUpRectangleByNMPoints(nDielectricWidthPoints, nDielectricHeightPoints),
-    #                       arc.breakUpArcByNPoints(nArcPoints), source)
-    #
-    test2()
-    # print(solver.getFieldEInPointM(result, [-3, 3], source, nDielectricHeightPoints*nDielectricWidthPoints))
+    # test2()
     # drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
-    #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints)
+    #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, nx)
     # taskConvergence()
+    computeFieldInLine()

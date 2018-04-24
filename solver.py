@@ -28,7 +28,7 @@ class Solver:
             B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i], source.point)))
         for i in range(nArc):
             self.P.append([arcPoints[i][0], arcPoints[i][1]])
-            B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i], source.point)))
+            B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i+nDielectric], source.point)))
         A = [[complex(0.0)] * (nDielectric+nArc) for i in range(nDielectric+nArc)]
         n = nDielectric+nArc
         for i in range(n):
@@ -59,10 +59,10 @@ class Solver:
                           (M[0] - self.P[i][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
         for i in range(len(PHI)):
             Ez += complex(self.c2*PHI[i]*self.G(self.k0, M, self.P[i+nDielectric])*self.dl)
-            Hx += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
-                          (M[1] - self.P[i][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
-            Hy += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
-                          (M[0] - self.P[i][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+            Hx += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2)*
+                          (M[1] - self.P[i+nDielectric][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2))))
+            Hy += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2)*
+                          (M[0] - self.P[i+nDielectric][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2))))
         Hx *= - complex(0, 1)
         Hy *= complex(0, 1)
         return [Ez, Hx, Hy]
