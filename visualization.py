@@ -21,6 +21,13 @@ class Visualization:
                 self.axes.add_patch(mpatches.Circle([x, d[i]], 0.03, color=(0, 0, 0)))
             plt.draw()
 
+    def fillCircle(self, circle, n):
+        c = circle.breakUpByNPoints(n)
+        for i in range(len(c)):
+            self.axes.add_patch(mpatches.Circle(c[i], 0.03, color=(0, 0, 0)))
+            plt.draw()
+            plt.pause(self.arcPeriod)
+
     def fillDielectricRectangle(self, dielectricRectangle, n, m):
         rectangles = dielectricRectangle.breakUpRectangleByNMPoints(n, m)
         for i in range(len(rectangles)):
@@ -48,7 +55,7 @@ class Visualization:
             plt.draw()
             plt.pause(self.arcPeriod)
 
-    def drawTask(self, dielectricRectangle, source, arc, line):
+    def drawTask(self, dielectricRectangle, source, arc, figure, figureObj):
         self.axes.add_patch(mpatches.Rectangle(dielectricRectangle[0].lowerLeft, dielectricRectangle[0].width,
                                                dielectricRectangle[0].height, dielectricRectangle[0].rotateAngle, fill=False))
         if len(dielectricRectangle)==2:
@@ -57,7 +64,10 @@ class Visualization:
                                                    fill=False))
         self.axes.add_patch(mpatches.Circle(source.point, 0.1, color=(0, 0, 0)))
         self.axes.add_patch(mpatches.Arc(arc.center, arc.radius * 2, arc.radius * 2, arc.rotateAngle, -arc.angle, arc.angle))
-        self.axes.add_line(Line2D(line.x, line.y, color="black"))
+        if figure == "circle":
+            self.axes.add_patch(mpatches.Circle(figureObj.center, figureObj.radius, color=(0, 0, 0), fill=False))
+        else:
+            self.axes.add_line(Line2D(figureObj.x, figureObj.y, color="black"))
         plt.draw()
         plt.pause(self.taskPeriod)
 

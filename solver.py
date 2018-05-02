@@ -72,7 +72,7 @@ class Solver:
         self.k1 = k1
         self.c1 = (self.k1**2-self.k0**2)/(2*math.pi)
         self.c2 = 1 / (2 * math.pi)
-        self.accuracy = 0.000001
+        self.accuracy = 0.0000001
         self.ds = 0
         self.dl = 0
         self.P = []

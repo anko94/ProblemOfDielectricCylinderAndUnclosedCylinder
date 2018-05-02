@@ -1,3 +1,4 @@
+from data.circle import Circle
 from data.line import Line
 from data.arc import Arc
 from data.dielectricRectangle import DielectricRectangle
@@ -10,24 +11,32 @@ import numpy as np
 
 
 def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
-             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, n):
+             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, figure, figureArray):
     two = 0 if len(dielectricLowerLeftPoint)==1 else 1
     # all angles in degrees
     # point
     source = Source(sourcePoint)
     # center, radius, angle, rotateAngle
     arc = Arc(arcCenter, arcRadius, arcAngle, -90)
-    line = Line(eLineX, eLineY)
+    if figure == "circle":
+        # center, radius
+        fig = Circle(figureArray[0], figureArray[1])
+    else:
+        #x, y
+        fig = Line(figureArray[0], figureArray[1])
     # task draw period, arc draw period, rectangle's points draw period, dielectric draw period
     visualization = Visualization(0.1, 0.1, 0.1, 0.1)
     # lower left point, width, height, rotateAngle
     dielectricRectangle = [DielectricRectangle(dielectricLowerLeftPoint[0], dielectricWidth, dielectricHeight, -90)]
     if two == 1:
         dielectricRectangle.append(DielectricRectangle(dielectricLowerLeftPoint[1], dielectricWidth, dielectricHeight, -90))
-    visualization.drawTask(dielectricRectangle, source, arc, line)
+    visualization.drawTask(dielectricRectangle, source, arc, figure, fig)
     # visualization.fillArc(arc, nArcPoints)
     # visualization.fillDielectricRectangle(dielectricRectangle, nDielectricWidthPoints, nDielectricHeightPoints)
-    # visualization.fillLine(line, n)
+    # if figure == "circle":
+    #     visualization.fillCircle(fig, figureArray[2])
+    # else:
+    #     visualization.fillLine(fig, figureArray[2])
     visualization.blockPlot()
 
 
@@ -75,14 +84,17 @@ def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU):
     plt.show()
 
 
-def plotField(fieldE, fieldHx, fieldHy, d):
+def plotField(fieldE,maxE,figure,d):
     ax = plt.subplot(111)
-    ax.set_color_cycle(['green', 'black', 'red'])
-    plt.plot(d, fieldE, label="Ez")
-    plt.plot(d, fieldHx, label="Hx")
-    plt.plot(d, fieldHy, label="Hy")
-    plt.xlabel('a/k')
-    plt.ylabel('P')
+    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
+    nameD = ["без диэлектрика", "парафин", "эбонит", "слюда", "стекло", "вода", "сегнетова соль" ]
+    for i in range(len(fieldE)):
+        plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
+    if figure == "line":
+        plt.xlabel('x')
+    else:
+        plt.xlabel('угол')
+    plt.ylabel('поле Ez')
     leg = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", ncol=3, mode="expand", shadow=True,
                      fancybox=True, borderaxespad=0.)
     leg.get_frame().set_alpha(0.5)
@@ -280,60 +292,123 @@ def test2():
     print(maxAbsU)
 
 
-def computeFieldInLine():
+def computeField(figure):
     arcCenter = [1, -1]
     arcAngle = 30  # angle in degrees
     arcRadius = 1
-    dielectricLowerLeftPoint1 = [0.35, -1.654]
-    dielectricLowerLeftPoint2 = [1.35, -1.654]
+    dielectricLowerLeftPoint1 = [0.35, -1.666025]
+    dielectricLowerLeftPoint2 = [1.35, -1.666025]
     dielectricWidth = 0.2
     dielectricHeight = 0.3
     sourcePoint = [1, 1]
 
-    eLineX = [0.3, 1.7]
-    nx = 160
-    eLineY = [-1.86, -1.86]
-    line = Line(eLineX, eLineY)
-    l = line.breakUpByNPoints(nx)
-    x = l[0]
-    y = l[1]
+    if figure == "line":
+        # compute field in line
+        eLineX = [2, 2]
+        nx = 160
+        eLineY = [-2.2, -1.4]
+        line = Line(eLineX, eLineY)
+        l = line.breakUpByNPoints(nx)
+        x = l[0]
+        y = l[1]
+        figureArray = [eLineX, eLineY, nx]
+        fieldComputeArray = [x, y, nx]
+    else:
+       # compute field in circle
+       circleCenter = [1, -1]
+       circleRadius = 512
+       nCircle = 160
+       circle = Circle(circleCenter, circleRadius)
+       figureArray = [circleCenter, circleRadius, nCircle]
+       fieldComputeArray = [circle.breakUpByNPoints(nCircle), nCircle]
 
     nArcPoints = 10
     nDielectricWidthPoints = 10
     nDielectricHeightPoints = 4
-
-    solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
-                    2 * math.pi * 1.000001)  # k1  - волновое число внутри диэлектрика
 
     arc = Arc(arcCenter, arcRadius, arcAngle, -90)
     source = Source(sourcePoint)
     dielectricRectangle1 = DielectricRectangle(dielectricLowerLeftPoint1, dielectricWidth, dielectricHeight, -90)
     dielectricRectangle2 = DielectricRectangle(dielectricLowerLeftPoint2, dielectricWidth, dielectricHeight, -90)
     drawTask(arcCenter, arcAngle, arcRadius, [dielectricLowerLeftPoint1, dielectricLowerLeftPoint2], dielectricWidth, dielectricHeight, sourcePoint,
-             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, nx)
+             nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, figure, figureArray)
+    fieldE = []
+    fieldEmax= []
+    fieldHx = []
+    fieldHy = []
+
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1, dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.000001)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.4)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.7)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 2.6)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 4)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 9)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
+                           dielectricRectangle2, source, arc, figure, fieldComputeArray, 22)
+    fieldE.append(result[0])
+    fieldEmax.append(result[1])
+
+    maxE= max(fieldEmax)
+    if figure == "line":
+        graphArray=y
+    else:
+        angle = 0
+        dAngle = 360/nCircle
+        graphArray = []
+        while math.fabs(angle - 360) >= 0.0000001:
+            graphArray.append(angle)
+            angle+=dAngle
+    plotField(fieldE, maxE, figure, graphArray)
+
+
+def computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1, dielectricRectangle2, source, arc, figure, fieldComputeArray, d):
+    solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
+                    2 * math.pi * d)  # k1  - волновое число внутри диэлектрика
     fieldE = []
     fieldHx = []
     fieldHy = []
-    for i in range(nx):
-        result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints*2, nArcPoints,
+    n = fieldComputeArray[2] if figure=="line" else fieldComputeArray[1]
+    for i in range(n):
+        result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints * 2, nArcPoints,
                               dielectricRectangle1.breakUpRectangleByNMPoints(nDielectricWidthPoints,
-                                                                             nDielectricHeightPoints) + dielectricRectangle2.breakUpRectangleByNMPoints(nDielectricWidthPoints,
-                                                                             nDielectricHeightPoints),
+                                                                              nDielectricHeightPoints) + dielectricRectangle2.breakUpRectangleByNMPoints(
+                                  nDielectricWidthPoints,
+                                  nDielectricHeightPoints),
                               arc.breakUpArcByNPoints(nArcPoints), source)
-        r = solver.getFieldEInPointM(result, [x[i], y], source, nDielectricWidthPoints * nDielectricHeightPoints*2)
+        if figure == "circle":
+            M = fieldComputeArray[0][i]
+        else:
+            M = [fieldComputeArray[0], fieldComputeArray[1][i]]
+        r = solver.getFieldEInPointM(result, M, source, nDielectricWidthPoints * nDielectricHeightPoints * 2)
         fieldE.append(r[0])
         fieldHx.append(r[1])
         fieldHy.append(r[2])
 
     fieldEAbs = listAbs(fieldE)
-    fieldHxAbs = listAbs(fieldHx)
-    fieldHyAbs = listAbs(fieldHy)
+    # fieldHxAbs = listAbs(fieldHx)
+    # fieldHyAbs = listAbs(fieldHy)
 
     maxE = max(fieldEAbs)
-    maxHx = max(fieldHxAbs)
-    maxHy = max(fieldHyAbs)
-
-    plotField(norm(fieldEAbs, maxE), norm(fieldHxAbs, maxHx), norm(fieldHyAbs, maxHy), x)
+    # maxHx = max(fieldHxAbs)
+    # maxHy = max(fieldHyAbs)
+    return [fieldEAbs, maxE]
 
 
 if __name__ == "__main__":
@@ -364,7 +439,21 @@ if __name__ == "__main__":
     # source = Source(sourcePoint)
     # dielectricRectangle = DielectricRectangle(dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, -90)
     # test2()
-    # drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
-    #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, eLineX, eLineY, nx)
+
+    # circleCenter = [1, -1]
+    # circleRadius = 3
+    # nCircle = 10
+    # figure="circle"
+    # figureArray = [circleCenter, circleRadius, nCircle]
+
+    # eLineX = [2, 2]
+    # nx = 10
+    # eLineY = [-2.2, -1.4]
+    # figure = "line"
+    # figureArray = [eLineX, eLineY, nx]
+
+    # drawTask(arcCenter, arcAngle, arcRadius, [dielectricLowerLeftPoint], dielectricWidth, dielectricHeight, sourcePoint,
+    #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, figure, figureArray)
+
     # taskConvergence()
-    computeFieldInLine()
+    computeField("circle")
