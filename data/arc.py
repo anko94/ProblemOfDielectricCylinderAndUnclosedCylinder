@@ -40,6 +40,7 @@ class Arc:
         result1 = []
         for i in range(1, len(result)):
             result1.append([(result[i-1][0]+result[i][0])/2, (result[i-1][1]+result[i][1])/2])
+        print(result[0])
         return result1
 
     #rewrite this method for another case of arc

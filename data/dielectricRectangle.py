@@ -13,6 +13,7 @@ class DielectricRectangle:
                 x1 = self.lowerLeft[0] + i * dw * math.cos(rotateAngleRadians) - j * dh * math.sin(rotateAngleRadians)
                 y1 = self.lowerLeft[1] + i * dw * math.sin(rotateAngleRadians) + j * dh * math.cos(rotateAngleRadians)
                 result.append(DielectricRectangle([x1, y1], dw, dh, self.rotateAngle))
+
         return result
 
     def getListOfVertices(self):

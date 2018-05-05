@@ -8,6 +8,9 @@ from visualization import Visualization
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+from multiprocessing import Pool
+from functools import partial
 
 
 def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectricWidth, dielectricHeight, sourcePoint,
@@ -32,7 +35,7 @@ def drawTask(arcCenter, arcAngle, arcRadius, dielectricLowerLeftPoint, dielectri
         dielectricRectangle.append(DielectricRectangle(dielectricLowerLeftPoint[1], dielectricWidth, dielectricHeight, -90))
     visualization.drawTask(dielectricRectangle, source, arc, figure, fig)
     # visualization.fillArc(arc, nArcPoints)
-    # visualization.fillDielectricRectangle(dielectricRectangle, nDielectricWidthPoints, nDielectricHeightPoints)
+    # visualization.fillDielectricRectangle(dielectricRectangle[0], nDielectricWidthPoints, nDielectricHeightPoints)
     # if figure == "circle":
     #     visualization.fillCircle(fig, figureArray[2])
     # else:
@@ -84,12 +87,7 @@ def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU):
     plt.show()
 
 
-def plotField(fieldE,maxE,figure,d):
-    ax = plt.subplot(111)
-    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
-    nameD = ["без диэлектрика", "парафин", "эбонит", "слюда", "стекло", "вода", "сегнетова соль" ]
-    for i in range(len(fieldE)):
-        plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
+def plotFieldGraph(figure):
     if figure == "line":
         plt.xlabel('x')
     else:
@@ -99,6 +97,37 @@ def plotField(fieldE,maxE,figure,d):
                      fancybox=True, borderaxespad=0.)
     leg.get_frame().set_alpha(0.5)
     plt.show()
+
+
+def plotField(fieldE,maxE,figure,d):
+
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
+    nameD = ["без диэлектрика", "парафин"]
+    for i in range(len(nameD)):
+        plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
+    plotFieldGraph(figure)
+
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['red', 'orange', 'brown', 'yellow', 'blue'])
+    nameD = ["эбонит", "слюда"]
+    for i in range(len(nameD)):
+        plt.plot(d, norm(fieldE[i+2], maxE), label=nameD[i])
+    plotFieldGraph(figure)
+
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['brown', 'yellow', 'blue'])
+    nameD = ["стекло", "вода", "сегнетова соль"]
+    for i in range(len(nameD)):
+        plt.plot(d, norm(fieldE[i+4], maxE), label=nameD[i])
+    plotFieldGraph(figure)
+
+    ax = plt.subplot(111)
+    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
+    nameD = ["без диэлектрика", "парафин", "эбонит", "слюда", "стекло", "вода", "сегнетова соль" ]
+    for i in range(len(fieldE)):
+        plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
+    plotFieldGraph(figure)
 
 
 def listAbs(list):
@@ -296,8 +325,8 @@ def computeField(figure):
     arcCenter = [1, -1]
     arcAngle = 30  # angle in degrees
     arcRadius = 1
-    dielectricLowerLeftPoint1 = [0.35, -1.666025]
-    dielectricLowerLeftPoint2 = [1.35, -1.666025]
+    dielectricLowerLeftPoint1 = [0.35, -1.6660252]
+    dielectricLowerLeftPoint2 = [1.35, -1.6660252]
     dielectricWidth = 0.2
     dielectricHeight = 0.3
     sourcePoint = [1, 1]
@@ -305,7 +334,7 @@ def computeField(figure):
     if figure == "line":
         # compute field in line
         eLineX = [2, 2]
-        nx = 160
+        nx = 120
         eLineY = [-2.2, -1.4]
         line = Line(eLineX, eLineY)
         l = line.breakUpByNPoints(nx)
@@ -316,15 +345,15 @@ def computeField(figure):
     else:
        # compute field in circle
        circleCenter = [1, -1]
-       circleRadius = 512
-       nCircle = 160
+       circleRadius = 16000
+       nCircle = 1280
        circle = Circle(circleCenter, circleRadius)
        figureArray = [circleCenter, circleRadius, nCircle]
        fieldComputeArray = [circle.breakUpByNPoints(nCircle), nCircle]
 
-    nArcPoints = 10
-    nDielectricWidthPoints = 10
-    nDielectricHeightPoints = 4
+    nArcPoints = 320
+    nDielectricWidthPoints = 40
+    nDielectricHeightPoints = 32
 
     arc = Arc(arcCenter, arcRadius, arcAngle, -90)
     source = Source(sourcePoint)
@@ -378,6 +407,10 @@ def computeField(figure):
     plotField(fieldE, maxE, figure, graphArray)
 
 
+def computeFieldMP(M, result, source, size, solver):
+    return solver.getFieldEInPointM(result, M, source, size)
+
+
 def computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1, dielectricRectangle2, source, arc, figure, fieldComputeArray, d):
     solver = Solver(2 * math.pi,  # k0  - волновое число вне диэлектрика
                     2 * math.pi * d)  # k1  - волновое число внутри диэлектрика
@@ -385,22 +418,37 @@ def computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, d
     fieldHx = []
     fieldHy = []
     n = fieldComputeArray[2] if figure=="line" else fieldComputeArray[1]
-    for i in range(n):
-        result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints * 2, nArcPoints,
-                              dielectricRectangle1.breakUpRectangleByNMPoints(nDielectricWidthPoints,
-                                                                              nDielectricHeightPoints) + dielectricRectangle2.breakUpRectangleByNMPoints(
-                                  nDielectricWidthPoints,
-                                  nDielectricHeightPoints),
-                              arc.breakUpArcByNPoints(nArcPoints), source)
-        if figure == "circle":
-            M = fieldComputeArray[0][i]
-        else:
-            M = [fieldComputeArray[0], fieldComputeArray[1][i]]
-        r = solver.getFieldEInPointM(result, M, source, nDielectricWidthPoints * nDielectricHeightPoints * 2)
-        fieldE.append(r[0])
-        fieldHx.append(r[1])
-        fieldHy.append(r[2])
-
+    result = solver.solve(nDielectricWidthPoints * nDielectricHeightPoints * 2, nArcPoints,
+                          dielectricRectangle1.breakUpRectangleByNMPoints(nDielectricWidthPoints,
+                                                                          nDielectricHeightPoints) + dielectricRectangle2.breakUpRectangleByNMPoints(
+                              nDielectricWidthPoints,
+                              nDielectricHeightPoints),
+                          arc.breakUpArcByNPoints(nArcPoints), source)
+    start=time.time()
+    # for i in range(n):
+    #     if figure == "circle":
+    #         M = fieldComputeArray[0][i]
+    #     else:
+    #         M = [fieldComputeArray[0], fieldComputeArray[1][i]]
+    #     r = solver.getFieldEInPointM(result, M, source, nDielectricWidthPoints * nDielectricHeightPoints * 2)
+    #     fieldE.append(r[0])
+    #     fieldHx.append(r[1])
+    #     fieldHy.append(r[2])
+    pool = Pool(16)
+    if figure == "circle":
+        M = fieldComputeArray[0]
+    else:
+        M = []
+        for i in range(len(fieldComputeArray[1])):
+            M.append([fieldComputeArray[0], fieldComputeArray[1][i]])
+    r = pool.map(partial(computeFieldMP, result=result, source=source, size=nDielectricWidthPoints * nDielectricHeightPoints * 2,
+                         solver=solver), M)
+    for i in range(len(r)):
+        fieldE.append(r[i][0])
+        fieldHx.append(r[i][1])
+        fieldHy.append(r[i][2])
+    end=time.time()
+    print(end-start)
     fieldEAbs = listAbs(fieldE)
     # fieldHxAbs = listAbs(fieldHx)
     # fieldHyAbs = listAbs(fieldHy)

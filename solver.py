@@ -1,6 +1,21 @@
 import math
 import mpmath
 import numpy as np
+from multiprocessing import Pool
+from functools import partial
+import time
+
+
+def AMP(i, n, nDielectric, G, P, c1, c2, ds, dl, k0):
+    A = []
+    for j in range(n):
+        i1 = 1 if i == j and j < nDielectric and i < nDielectric else 0
+        if j < nDielectric:
+            A.append(complex(c1 * ds * (G(k0, P[i], P[j]) - 1 / (c1 * ds) * i1)))
+        else:
+            A.append(complex(c2 * dl * G(k0, P[i], P[j])))
+    return A
+
 
 class Solver:
 
@@ -21,6 +36,7 @@ class Solver:
         self.dl = math.sqrt((arcPoints[0][0]-arcPoints[1][0])**2 + (arcPoints[0][1]-arcPoints[1][1])**2)
         B = []
         self.P = []
+        startTime = time.time()
         for i in range(nDielectric):
             vertices = dielectricRectangles[i].getListOfVertices()
             self.P.append([vertices[1][0] - math.fabs(vertices[1][0] - vertices[2][0]) / 2,
@@ -31,14 +47,21 @@ class Solver:
             B.append(-complex(self.getInitialFieldStrength(self.k0, self.P[i+nDielectric], source.point)))
         A = [[complex(0.0)] * (nDielectric+nArc) for i in range(nDielectric+nArc)]
         n = nDielectric+nArc
-        for i in range(n):
-            for j in range(n):
-                i1 = 1 if i==j and j<nDielectric and i<nDielectric else 0
-                if j<nDielectric:
-                    A[i][j] = complex(self.c1*self.ds*(self.G(self.k0, self.P[i], self.P[j])-1/(self.c1*self.ds)*i1))
-                else:
-                    A[i][j] = complex(self.c2*self.dl*self.G(self.k0, self.P[i], self.P[j]))
+        pool = Pool(16)
+        A = pool.map(partial(AMP, n=n, nDielectric=nDielectric, G=self.G,
+                         P=self.P, c1=self.c1, c2=self.c2, ds=self.ds, dl=self.dl, k0=self.k0), list(range(n)))
+        # for i in range(n):
+        #     for j in range(n):
+        #         i1 = 1 if i==j and j<nDielectric and i<nDielectric else 0
+        #         if j<nDielectric:
+        #             A[i][j] = complex(self.c1*self.ds*(self.G(self.k0, self.P[i], self.P[j])-1/(self.c1*self.ds)*i1))
+        #         else:
+        #             A[i][j] = complex(self.c2*self.dl*self.G(self.k0, self.P[i], self.P[j]))
+        endTime = time.time()
+        print(endTime-startTime)
         result = np.linalg.solve(np.array(A), np.array(B))
+        endTime1=time.time()
+        print(endTime1-endTime)
         U = result[:nDielectric]
         PHI = result[nDielectric:]
         return [U, PHI]
