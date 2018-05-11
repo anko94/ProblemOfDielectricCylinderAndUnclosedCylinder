@@ -87,47 +87,46 @@ def plotFieldStrengthErrorByNumberOfPoints(nArcPointsList, maxU):
     plt.show()
 
 
-def plotFieldGraph(figure):
+def plotFieldGraph(name, figure):
     if figure == "line":
         plt.xlabel('x')
     else:
         plt.xlabel('угол')
-    plt.ylabel('поле Ez')
+    plt.ylabel('составляющая '+name)
     leg = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", ncol=3, mode="expand", shadow=True,
                      fancybox=True, borderaxespad=0.)
     leg.get_frame().set_alpha(0.5)
     plt.show()
 
 
-def plotField(fieldE,maxE,figure,d):
-
+def plotField(name, fieldE,maxE,figure,d):
     ax = plt.subplot(111)
-    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
+    ax.set_color_cycle(['green', 'black'])
     nameD = ["без диэлектрика", "парафин"]
-    for i in range(len(nameD)):
+    for i in range(2):
         plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
-    plotFieldGraph(figure)
+    plotFieldGraph(name, figure)
 
     ax = plt.subplot(111)
-    ax.set_color_cycle(['red', 'orange', 'brown', 'yellow', 'blue'])
+    ax.set_color_cycle(['red', 'orange'])
     nameD = ["эбонит", "слюда"]
-    for i in range(len(nameD)):
+    for i in range(2):
         plt.plot(d, norm(fieldE[i+2], maxE), label=nameD[i])
-    plotFieldGraph(figure)
+    plotFieldGraph(name, figure)
 
     ax = plt.subplot(111)
-    ax.set_color_cycle(['brown', 'yellow', 'blue'])
+    ax.set_color_cycle(['brown', 'purple', 'blue'])
     nameD = ["стекло", "вода", "сегнетова соль"]
-    for i in range(len(nameD)):
+    for i in range(3):
         plt.plot(d, norm(fieldE[i+4], maxE), label=nameD[i])
-    plotFieldGraph(figure)
+    plotFieldGraph(name, figure)
 
     ax = plt.subplot(111)
-    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'yellow', 'blue'])
+    ax.set_color_cycle(['green', 'black', 'red', 'orange', 'brown', 'purple', 'blue'])
     nameD = ["без диэлектрика", "парафин", "эбонит", "слюда", "стекло", "вода", "сегнетова соль" ]
     for i in range(len(fieldE)):
-        plt.plot(d, norm(fieldE[i], maxE), label=nameD[i])
-    plotFieldGraph(figure)
+        plt.plot(d, fieldE[i], label=nameD[i])
+    plotFieldGraph(name, figure)
 
 
 def listAbs(list):
@@ -138,9 +137,10 @@ def listAbs(list):
 
 
 def norm(list, v):
-    for i in range(len(list)):
-        list[i] = list[i]/v
-    return list
+    list1 = list
+    for i in range(len(list1)):
+        list1[i] = list1[i]/v
+    return list1
 
 
 def taskConvergence():
@@ -333,9 +333,9 @@ def computeField(figure):
 
     if figure == "line":
         # compute field in line
-        eLineX = [2, 2]
-        nx = 120
-        eLineY = [-2.2, -1.4]
+        eLineX = [0.6, 1.4]
+        nx = 1000
+        eLineY = [-1.8660253, -1.8660253]
         line = Line(eLineX, eLineY)
         l = line.breakUpByNPoints(nx)
         x = l[0]
@@ -346,7 +346,7 @@ def computeField(figure):
        # compute field in circle
        circleCenter = [1, -1]
        circleRadius = 16000
-       nCircle = 1280
+       nCircle = 20000
        circle = Circle(circleCenter, circleRadius)
        figureArray = [circleCenter, circleRadius, nCircle]
        fieldComputeArray = [circle.breakUpByNPoints(nCircle), nCircle]
@@ -364,39 +364,71 @@ def computeField(figure):
     fieldE = []
     fieldEmax= []
     fieldHx = []
+    fieldHxmax = []
     fieldHy = []
+    fieldHymax = []
 
-    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1, dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.000001)
+    result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1, dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.0000001)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.4)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 1.7)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 2.6)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 4)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 9)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
     result = computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, dielectricRectangle1,
                            dielectricRectangle2, source, arc, figure, fieldComputeArray, 22)
     fieldE.append(result[0])
     fieldEmax.append(result[1])
+    fieldHx.append(result[2])
+    fieldHxmax.append(result[3])
+    fieldHy.append(result[4])
+    fieldHymax.append(result[5])
 
     maxE= max(fieldEmax)
+    maxHx = max(fieldHxmax)
+    maxHy=max(fieldHymax)
     if figure == "line":
-        graphArray=y
+        graphArray=x
     else:
         angle = 0
         dAngle = 360/nCircle
@@ -404,10 +436,13 @@ def computeField(figure):
         while math.fabs(angle - 360) >= 0.0000001:
             graphArray.append(angle)
             angle+=dAngle
-    plotField(fieldE, maxE, figure, graphArray)
+    plotField("Ez", fieldE, maxE, figure, graphArray)
+    plotField("Hx", fieldHx, maxHx, figure, graphArray)
+    plotField("Hy", fieldHy, maxHy, figure, graphArray)
 
 
 def computeFieldMP(M, result, source, size, solver):
+    # return solver.getFieldEInPointMInfinity(result, M, size)
     return solver.getFieldEInPointM(result, M, source, size)
 
 
@@ -439,8 +474,8 @@ def computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, d
         M = fieldComputeArray[0]
     else:
         M = []
-        for i in range(len(fieldComputeArray[1])):
-            M.append([fieldComputeArray[0], fieldComputeArray[1][i]])
+        for i in range(len(fieldComputeArray[0])):
+            M.append([fieldComputeArray[0][i], fieldComputeArray[1]])
     r = pool.map(partial(computeFieldMP, result=result, source=source, size=nDielectricWidthPoints * nDielectricHeightPoints * 2,
                          solver=solver), M)
     for i in range(len(r)):
@@ -450,13 +485,13 @@ def computeField1(nDielectricWidthPoints, nDielectricHeightPoints, nArcPoints, d
     end=time.time()
     print(end-start)
     fieldEAbs = listAbs(fieldE)
-    # fieldHxAbs = listAbs(fieldHx)
-    # fieldHyAbs = listAbs(fieldHy)
+    fieldHxAbs = listAbs(fieldHx)
+    fieldHyAbs = listAbs(fieldHy)
 
     maxE = max(fieldEAbs)
-    # maxHx = max(fieldHxAbs)
-    # maxHy = max(fieldHyAbs)
-    return [fieldEAbs, maxE]
+    maxHx = max(fieldHxAbs)
+    maxHy = max(fieldHyAbs)
+    return [fieldEAbs, maxE, fieldHx, maxHx, fieldHy, maxHy]
 
 
 if __name__ == "__main__":
@@ -504,4 +539,4 @@ if __name__ == "__main__":
     #          nArcPoints, nDielectricWidthPoints, nDielectricHeightPoints, figure, figureArray)
 
     # taskConvergence()
-    computeField("circle")
+    computeField("line")

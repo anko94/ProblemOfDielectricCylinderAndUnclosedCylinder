@@ -4,6 +4,7 @@ import numpy as np
 from multiprocessing import Pool
 from functools import partial
 import time
+import cmath
 
 
 def AMP(i, n, nDielectric, G, P, c1, c2, ds, dl, k0):
@@ -29,11 +30,20 @@ class Solver:
         r = r if r != 0 else self.accuracy
         return math.pi/2 * 1j * mpmath.hankel1(0, k * r)
 
+    def hankelInfinity(self, k, M, P):
+        r = math.sqrt((M[0] - P[0]) ** 2 + (M[1] - P[1]) ** 2)
+        return math.sqrt(2/(math.pi*k*r)) * cmath.exp(1j*(k*r-math.pi/4))
+
+    def Ginfinity(self, k, M, P):
+        return math.pi / 2 * 1j * self.hankelInfinity(k, M, P)
+
     def solve(self, nDielectric, nArc, dielectricRectangles, arcPoints, source):
         vertices = dielectricRectangles[0].getListOfVertices()
         self.ds = math.sqrt((vertices[0][0] - vertices[1][0])**2 + (vertices[0][1] - vertices[1][1])**2) * \
              math.sqrt((vertices[1][0] - vertices[3][0])**2 + (vertices[1][1] - vertices[3][1])**2)
         self.dl = math.sqrt((arcPoints[0][0]-arcPoints[1][0])**2 + (arcPoints[0][1]-arcPoints[1][1])**2)
+        print("ds: ", self.ds)
+        print("dl: ", self.dl)
         B = []
         self.P = []
         startTime = time.time()
@@ -70,22 +80,58 @@ class Solver:
         U = UPHI[0]
         PHI = UPHI[1]
         Ez = complex(self.getInitialFieldStrength(self.k0, M, source.point))
-        Hx = complex(1/math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
-                     (M[1] - source.point[1]) * (-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
-        Hy = complex(1/math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
-                     (M[0] - source.point[0]) * (-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
+        Hx = complex(1 / math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
+                     (M[1] - source.point[1]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+            (M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
+        Hy = complex(1 / math.sqrt((M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2) *
+                     (M[0] - source.point[0]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+            (M[0] - source.point[0]) ** 2 + (M[1] - source.point[1]) ** 2))))
         for i in range(len(U)):
-            Ez += complex(self.c1*U[i]*self.G(self.k0, M, self.P[i])*self.ds)
-            Hx += complex(self.c1*U[i]*self.ds*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
-                          (M[1] - self.P[i][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
-            Hy += complex(self.c1*U[i]*self.ds*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2)*
-                          (M[0] - self.P[i][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+            Ez += complex(self.c1 * U[i] * self.G(self.k0, M, self.P[i]) * self.ds)
+            Hx += complex(self.c1 * U[i] * self.ds * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2) *
+                          (M[1] - self.P[i][1]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
+            Hy += complex(self.c1 * U[i] * self.ds * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2) *
+                          (M[0] - self.P[i][0]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2))))
         for i in range(len(PHI)):
-            Ez += complex(self.c2*PHI[i]*self.G(self.k0, M, self.P[i+nDielectric])*self.dl)
-            Hx += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2)*
-                          (M[1] - self.P[i+nDielectric][1])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2))))
-            Hy += complex(self.c2*PHI[i]*self.dl*math.pi/2 * 1j*1/math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2)*
-                          (M[0] - self.P[i+nDielectric][0])*(-mpmath.hankel1(1, self.k0*math.sqrt((M[0] - self.P[i+nDielectric][0]) ** 2 + (M[1] - self.P[i+nDielectric][1]) ** 2))))
+            Ez += complex(self.c2 * PHI[i] * self.G(self.k0, M, self.P[i + nDielectric]) * self.dl)
+            Hx += complex(self.c2 * PHI[i] * self.dl * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2) *
+                          (M[1] - self.P[i + nDielectric][1]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2))))
+            Hy += complex(self.c2 * PHI[i] * self.dl * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2) *
+                          (M[0] - self.P[i + nDielectric][0]) * (-mpmath.hankel1(1, self.k0 * math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2))))
+        Hx *= - complex(0, 1)
+        Hy *= complex(0, 1)
+        return [Ez, Hx, Hy]
+
+    def getFieldEInPointMInfinity(self, UPHI, M, nDielectric):
+        U = UPHI[0]
+        PHI = UPHI[1]
+        Ez = complex(0)
+        Hx = complex(0)
+        Hy = complex(0)
+        for i in range(len(U)):
+            Ez += complex(self.c1 * U[i] * self.Ginfinity(self.k0, M, self.P[i]) * self.ds)
+            Hx += complex(self.c1 * U[i] * self.ds * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2) *
+                          (M[1] - self.P[i][1]) * (-self.hankelInfinity(self.k0, M, self.P[i])))
+            Hy += complex(self.c1 * U[i] * self.ds * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i][0]) ** 2 + (M[1] - self.P[i][1]) ** 2) *
+                          (M[0] - self.P[i][0]) * (-self.hankelInfinity(self.k0, M, self.P[i])))
+        for i in range(len(PHI)):
+            Ez += complex(self.c2 * PHI[i] * self.Ginfinity(self.k0, M, self.P[i + nDielectric]) * self.dl)
+            Hx += complex(self.c2 * PHI[i] * self.dl * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2) *
+                          (M[1] - self.P[i + nDielectric][1]) * (-self.hankelInfinity(self.k0, M, self.P[i + nDielectric])))
+            Hy += complex(self.c2 * PHI[i] * self.dl * math.pi / 2 * 1j * 1 / math.sqrt(
+                (M[0] - self.P[i + nDielectric][0]) ** 2 + (M[1] - self.P[i + nDielectric][1]) ** 2) *
+                          (M[0] - self.P[i + nDielectric][0]) * (-self.hankelInfinity(self.k0, M, self.P[i + nDielectric])))
         Hx *= - complex(0, 1)
         Hy *= complex(0, 1)
         return [Ez, Hx, Hy]

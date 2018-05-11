@@ -26,6 +26,7 @@ class Arc:
         exitFlag = 0
         angle = self.angle
         dl = 2 * math.pi * self.radius/(n-1) * angle * 2/360
+        print("dAngle: ", dl)
         while exitFlag != 1:
             d = self.getTwoVertices(angle)
             if math.sqrt((d[0][0] - d[1][0])**2 + (d[0][1] - d[1][1])**2) < self.accuracy:
@@ -40,7 +41,7 @@ class Arc:
         result1 = []
         for i in range(1, len(result)):
             result1.append([(result[i-1][0]+result[i][0])/2, (result[i-1][1]+result[i][1])/2])
-        print(result[0])
+        print("left point of arc: ", result[0])
         return result1
 
     #rewrite this method for another case of arc
